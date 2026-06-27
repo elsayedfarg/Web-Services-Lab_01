@@ -1,2 +1,4 @@
 node_modules/
 db/library.db
+*.db-shm
+*.db-wal
