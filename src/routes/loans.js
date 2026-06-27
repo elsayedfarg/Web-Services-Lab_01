@@ -7,13 +7,26 @@ const router = express.Router();
 // Return all loans. Optional query param: ?returned=true|false
 // (filter by whether returned_at is set)
 router.get('/', (req, res) => {
-  res.status(501).json({ error: 'Not implemented' });
+  if (req.query.returned === 'true') {
+    const loans = db.prepare('SELECT * FROM loans WHERE returned_at IS NOT NULL').all();
+    res.json(loans);
+  } else if (req.query.returned === 'false') {
+    const loans = db.prepare('SELECT * FROM loans WHERE returned_at IS NULL').all();
+    res.json(loans);
+  } else {
+    const loans = db.prepare('SELECT * FROM loans').all();
+    res.json(loans);
+  }
 });
 
 // GET /loans/:id
 // Return a single loan including book info. 404 if not found.
 router.get('/:id', (req, res) => {
-  res.status(501).json({ error: 'Not implemented' });
+  const loan = db.prepare('SELECT * FROM loans WHERE id = ?').get(req.params.id);
+  if (!loan) return res.status(404).json({ error: 'Not found' });
+  
+  const book = db.prepare('SELECT * FROM books WHERE id = ?').get(loan.book_id);
+  res.json({ ...loan, book });
 });
 
 // POST /loans
@@ -22,7 +35,19 @@ router.get('/:id', (req, res) => {
 // 409 if the book is already on active loan (returned_at IS NULL).
 // Respond 201 with the created loan.
 router.post('/', (req, res) => {
-  res.status(501).json({ error: 'Not implemented' });
+  const { book_id, borrower_name } = req.body;
+  
+  const book = db.prepare('SELECT * FROM books WHERE id = ?').get(book_id);
+  if (!book) return res.status(404).json({ error: 'Book not found' });
+
+  const activeLoan = db.prepare('SELECT * FROM loans WHERE book_id = ? AND returned_at IS NULL').get(book_id);
+  if (activeLoan) return res.status(409).json({ error: 'Book already on active loan' });
+
+  const stmt = db.prepare('INSERT INTO loans (book_id, borrower_name) VALUES (?, ?)');
+  const info = stmt.run(book_id, borrower_name);
+  
+  const newLoan = db.prepare('SELECT * FROM loans WHERE id = ?').get(info.lastInsertRowid);
+  res.status(201).json(newLoan);
 });
 
 // PATCH /loans/:id/return
@@ -30,7 +55,15 @@ router.post('/', (req, res) => {
 // 404 if loan not found. 409 if already returned.
 // Respond 200 with the updated loan.
 router.patch('/:id/return', (req, res) => {
-  res.status(501).json({ error: 'Not implemented' });
+  const loan = db.prepare('SELECT * FROM loans WHERE id = ?').get(req.params.id);
+  if (!loan) return res.status(404).json({ error: 'Not found' });
+
+  if (loan.returned_at) return res.status(409).json({ error: 'Already returned' });
+
+  db.prepare("UPDATE loans SET returned_at = date('now') WHERE id = ?").run(req.params.id);
+  
+  const updatedLoan = db.prepare('SELECT * FROM loans WHERE id = ?').get(req.params.id);
+  res.json(updatedLoan);
 });
 
 module.exports = router;

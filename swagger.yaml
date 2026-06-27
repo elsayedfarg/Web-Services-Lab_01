@@ -1,0 +1,365 @@
+openapi: 3.0.0
+info:
+  title: Library Management System API
+  version: 1.0.0
+  description: A RESTful API for a library management system.
+servers:
+  - url: http://localhost:3000
+paths:
+  /authors:
+    get:
+      summary: List all authors
+      responses:
+        '200':
+          description: A list of authors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Author'
+    post:
+      summary: Create author
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '201':
+          description: Author created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+  /authors/{id}:
+    get:
+      summary: Get one author
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Author details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '404':
+          description: Author not found
+    patch:
+      summary: Update name and/or bio
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Author updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+        '404':
+          description: Author not found
+    delete:
+      summary: Delete author (cascades books)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Author deleted
+        '404':
+          description: Author not found
+  /authors/{id}/books:
+    get:
+      summary: List books by this author
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of books by the author
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+        '404':
+          description: Author not found
+
+  /books:
+    get:
+      summary: List all books
+      parameters:
+        - in: query
+          name: author_id
+          schema:
+            type: integer
+          description: Filter books by author_id
+      responses:
+        '200':
+          description: A list of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+    post:
+      summary: Create book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - author_id
+              properties:
+                title:
+                  type: string
+                year:
+                  type: integer
+                author_id:
+                  type: integer
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Author not found
+  /books/{id}:
+    get:
+      summary: Get one book including its author
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book details with author info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookWithAuthor'
+        '404':
+          description: Book not found
+    patch:
+      summary: Update title, year, and/or author_id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                year:
+                  type: integer
+                author_id:
+                  type: integer
+      responses:
+        '200':
+          description: Book updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+    delete:
+      summary: Delete book
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Book deleted
+        '404':
+          description: Book not found
+
+  /loans:
+    get:
+      summary: List all loans
+      parameters:
+        - in: query
+          name: returned
+          schema:
+            type: boolean
+          description: Filter loans by returned status (true/false)
+      responses:
+        '200':
+          description: A list of loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
+    post:
+      summary: Check out a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - book_id
+                - borrower_name
+              properties:
+                book_id:
+                  type: integer
+                borrower_name:
+                  type: string
+      responses:
+        '201':
+          description: Loan created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '404':
+          description: Book not found
+        '409':
+          description: Book already on active loan
+  /loans/{id}:
+    get:
+      summary: Get one loan including book info
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Loan details with book info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanWithBook'
+        '404':
+          description: Loan not found
+  /loans/{id}/return:
+    patch:
+      summary: Return a book
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '404':
+          description: Loan not found
+        '409':
+          description: Loan already returned
+
+components:
+  schemas:
+    Author:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        bio:
+          type: string
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        year:
+          type: integer
+        author_id:
+          type: integer
+    BookWithAuthor:
+      allOf:
+        - $ref: '#/components/schemas/Book'
+        - type: object
+          properties:
+            author:
+              $ref: '#/components/schemas/Author'
+    Loan:
+      type: object
+      properties:
+        id:
+          type: integer
+        book_id:
+          type: integer
+        borrower_name:
+          type: string
+        loaned_at:
+          type: string
+          format: date
+        returned_at:
+          type: string
+          format: date
+          nullable: true
+    LoanWithBook:
+      allOf:
+        - $ref: '#/components/schemas/Loan'
+        - type: object
+          properties:
+            book:
+              $ref: '#/components/schemas/Book'
